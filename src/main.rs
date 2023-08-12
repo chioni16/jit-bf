@@ -1,3 +1,5 @@
+mod crl;
+
 use std::io::Read;
 
 const MEM_SIZE: usize = 30000;
@@ -58,7 +60,8 @@ fn main() {
     // interpret(&input);
 
     let data = vec![0u8; MEM_SIZE];
-    let a = emit(&input, data.as_ptr() as u64);
+    let a = emit_x86(&input, data.as_ptr() as u64);
+    let a = crl::emit_clif(&input);
 
     unsafe {
         let code = libc::mmap(
@@ -82,9 +85,12 @@ fn main() {
 
         // std::fs::write("./output", code_slice).unwrap();
         println!("hello before function: {}", code as usize);
-        let f: fn() = std::mem::transmute(code);
-        f();
+        // let f: fn() = std::mem::transmute(code);
+        // f();
+        let f: fn(u64) = std::mem::transmute(code);
+        f(data.as_ptr() as u64);
     }
+
 
 }
 
@@ -234,7 +240,7 @@ fn interpret(input: &Vec<Op>) {
     }
 }
 
-fn emit(input: &Vec<Op>, addr: u64) -> Vec<u8> {
+fn emit_x86(input: &Vec<Op>, addr: u64) -> Vec<u8> {
     let mut temp: Vec<Vec<u8>> = vec![vec![]; input.len()];
     for (instr, op) in input.iter().enumerate() {
         match op {
